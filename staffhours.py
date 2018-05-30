@@ -47,7 +47,8 @@ class StaffHours:
         service_data = pd.read_excel(report, sheet_name="Service Data")
         return entry_data[[
             "Client Uid",
-            "Entry Exit Entry Date"
+            "Entry Exit Entry Date",
+            "Entry Exit Exit Date"
         ]], service_data[[
             "Client Uid",
             "Service Provide Start Date",
@@ -69,6 +70,9 @@ class StaffHours:
         # create a datetime column containing dates 3 months prior to the entry date
         data["Prior to Start"] = data["Entry Exit Entry Date"] - pd.DateOffset(months=3)
 
+        # fill the entry exit exit date with the period end date of it is na
+        data["Entry Exit Exit Date"] = data["Entry Exit Exit Date"].fillna(self.period_end)
+
         # create a dataframe of services created during the reporting period for participants who
         # entered prior to the reporting period.
         start_in_period = data[
@@ -76,8 +80,12 @@ class StaffHours:
                 data["Entry Exit Entry Date"] < data["Period Start"]
             ) &
             (
-                (data["Service Provide Start Date"] > data["Period Start"]) |
-                (data["Service Provide Start Date"] == data["Period Start"])
+                (data["Service Provide Start Date"].dt.date > data["Period Start"].dt.date) |
+                (data["Service Provide Start Date"].dt.date == data["Period Start"].dt.date)
+            ) &
+            (
+                (data["Service Provide Start Date"].dt.date < data["Entry Exit Exit Date"].dt.date) |
+                (data["Service Provide Start Date"].dt.date == data["Entry Exit Exit Date"].dt.date)
             )
         ]
 
@@ -85,12 +93,16 @@ class StaffHours:
         # provider for participants who entered the provider during the reporting period.
         start_prior_to_period = data[
             (
-                (data["Entry Exit Entry Date"] == data["Period Start"]) |
-                (data["Entry Exit Entry Date"] > data["Period Start"])
+                (data["Entry Exit Entry Date"].dt.date == data["Period Start"].dt.date) |
+                (data["Entry Exit Entry Date"].dt.date > data["Period Start"].dt.date)
             ) &
             (
-                (data["Service Provide Start Date"] == data["Prior to Start"]) |
-                (data["Service Provide Start Date"] > data["Prior to Start"])
+                (data["Service Provide Start Date"].dt.date == data["Prior to Start"].dt.date) |
+                (data["Service Provide Start Date"].dt.date > data["Prior to Start"].dt.date)
+            ) &
+            (
+                (data["Service Provide Start Date"].dt.date < data["Entry Exit Exit Date"].dt.date) |
+                (data["Service Provide Start Date"].dt.date == data["Entry Exit Exit Date"].dt.date)
             )
         ]
 
